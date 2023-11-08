@@ -133,7 +133,12 @@ class DaneBot:
         self.propagation_time = args.propagation_time
         self.hook = args.hook
 
-        url = urllib.parse.urlsplit("//" + args.rfc2136_nameserver)
+        try:
+            url = urllib.parse.urlsplit("//" + args.rfc2136_nameserver)
+            if url.port is not None:
+                int(url.port)
+        except Exception as e:
+            raise DaneBotError(f"parsing --rfc2136-nameserver: {e}")
         try:
             self.rfc2136_ip = socket.getaddrinfo(
                 url.hostname, None, 0, 0, socket.SOL_TCP
@@ -229,9 +234,7 @@ class DaneBot:
                 rrset.add(self.rdata)
 
                 request = dns.message.make_query(name, dns.rdatatype.TLSA)
-                response = dns.query.tcp(
-                    request, self.rfc2136_ip, port=self.rfc2136_port
-                )
+                response = dns_query(request, self.rfc2136_ip, port=self.rfc2136_port)
                 if len(response.answer) != 0:
                     print("Found records:")
                     print(textwrap.indent(str(response.answer[0]), "  "))
@@ -263,14 +266,14 @@ class DaneBot:
                     updates[zone].replace(name, rrset)
 
         for zone, update in updates.items():
-            response = dns.query.tcp(update, self.rfc2136_ip, port=self.rfc2136_port)
+            response = dns_query(update, self.rfc2136_ip, port=self.rfc2136_port)
             print(f"Updated zone {zone}")
 
         return max_ttl
 
     def resolve_zone(self, fqdn):
         request = dns.message.make_query(fqdn, dns.rdatatype.SOA)
-        response = dns.query.tcp(request, self.rfc2136_ip, port=self.rfc2136_port)
+        response = dns_query(request, self.rfc2136_ip, port=self.rfc2136_port)
         if len(response.answer) != 0:
             # There's a SOA record, so the zone starts at fqdn.
             return fqdn
@@ -321,6 +324,14 @@ def get_server_cert(hostname, port):
         sock.recv(1000)
         with context.wrap_socket(sock, server_hostname=hostname) as sslsock:
             return x509.load_der_x509_certificate(sslsock.getpeercert(True))
+
+
+def dns_query(request, ip, port):
+    try:
+        response = dns.query.tcp(request, ip, port=port)
+    except Exception as e:
+        raise DaneBotError(f"failed DNS request @ {ip}: {e}")
+    return response
 
 
 if __name__ == "__main__":
