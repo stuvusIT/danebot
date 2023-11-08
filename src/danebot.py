@@ -273,7 +273,12 @@ class DaneBot:
                     updates[zone].replace(name, rrset)
 
         for zone, update in updates.items():
-            response = dns_query(update, self.rfc2136_ip, port=self.rfc2136_port)
+            response = dns_query(
+                update,
+                self.rfc2136_ip,
+                port=self.rfc2136_port,
+                allowable_rcodes=[dns.rcode.NOERROR],
+            )
             print(f"Updated zone {zone}")
 
         return max_ttl
@@ -333,11 +338,18 @@ def get_server_cert(hostname, port):
             return x509.load_der_x509_certificate(sslsock.getpeercert(True))
 
 
-def dns_query(request, ip, port):
+def dns_query(
+    request, ip, port, allowable_rcodes=[dns.rcode.NOERROR, dns.rcode.NXDOMAIN]
+):
     try:
         response = dns.query.tcp(request, ip, port=port)
     except Exception as e:
         raise DaneBotError(f"failed DNS request @ {ip}: {e}")
+    rcode = response.rcode()
+    if rcode not in allowable_rcodes:
+        raise DaneBotError(
+            f"DNS request @ {ip} returned with rcode {dns.rcode.to_text(rcode)}"
+        )
     return response
 
 
