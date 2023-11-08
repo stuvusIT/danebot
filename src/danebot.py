@@ -135,11 +135,11 @@ class DaneBot:
 
         url = urllib.parse.urlsplit("//" + args.rfc2136_nameserver)
         try:
-            # raises ValueError if url.hostname is not an IPv4 or IPv6 address:
-            ip_address(url.hostname)
-        except ValueError as e:
-            raise DaneBotError(f"parsing --rfc2136-nameserver: {e}")
-        self.rfc2136_ip = url.hostname
+            self.rfc2136_ip = socket.getaddrinfo(
+                url.hostname, None, 0, 0, socket.SOL_TCP
+            )[0][4][0]
+        except socket.gaierror as e:
+            raise DaneBotError(f"resolving --rfc2136-nameserver: {e}")
         self.rfc2136_port = 53 if url.port is None else url.port
 
         if args.rfc2136_tsig_key is None:
