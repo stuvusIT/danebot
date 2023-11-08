@@ -4,7 +4,7 @@ DaneBot uses dynamic DNS (RFC 2136) to automatically renew TLSA records for rene
 certificates.
 Certificate renewal itself is out of scope for DaneBot.
 
-We suggest to run DaneBot as a cron job once a day.
+We suggest running DaneBot as a cron job once a day.
 DaneBot simply parses a given certificate file (which might or might not have been
 renewed since DaneBot's last run) and then performs the following steps:
 
@@ -49,7 +49,7 @@ Another probe is done after running the hook (step 3) to verify that the hook
 successfully installed the new certificate – an error is returned if that's not the
 case.
 
-Currently DaneBot only supports SMTP-STARTTLS probes.
+Currently, DaneBot only supports SMTP-STARTTLS probes.
 Thus, if you want to use DaneBot for something other than a mailserver, you need to omit
 the `--probe` flag.
 
