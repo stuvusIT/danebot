@@ -66,6 +66,10 @@ DaneBot can safely be interrupted and rerun at any time.
 
 See `src/danebot.py --help`.
 
+## Dependencies
+
+`python3` with additional modules listed in `./requirements.txt`.
+
 ## Example Usage
 
 The following example command reads a certificate from
