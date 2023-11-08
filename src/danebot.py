@@ -170,21 +170,28 @@ class DaneBot:
         self.dane_ee_hash = get_dane_ee_hash(self.cert)
         self.rdata = get_tlsa_rdata(self.dane_ee_hash)
 
-        common_name = self.cert.subject.get_attributes_for_oid(
-            x509.oid.NameOID.COMMON_NAME
-        )[0].value
-        san = self.cert.extensions.get_extension_for_class(
-            x509.SubjectAlternativeName
-        ).value.get_values_for_type(x509.DNSName)
         print(f"Loaded certificate {args.cert_file}:")
-        print(f"  CN = {common_name}")
-        print(f"  SAN = {', '.join(san)}")
         print(f"  TLSA rdata = {self.rdata}")
         print(f"  Fingerprint = sha256:{self.cert_sha256.hex()}")
 
-        all_names = [common_name] + san
+        # Determine server identity (i.e., list of domain names) as specified by
+        # https://www.rfc-editor.org/rfc/rfc2818#page-5
+        try:
+            names = self.cert.extensions.get_extension_for_class(
+                x509.SubjectAlternativeName
+            ).value.get_values_for_type(x509.DNSName)
+        except x509.extensions.ExtensionNotFound:
+            cn_attributes = self.cert.subject.get_attributes_for_oid(
+                x509.oid.NameOID.COMMON_NAME
+            )
+            if not cn_attributes:
+                raise DaneBotError(f"certificate has no dNSName nor Common Name")
+            names = [cn_attributes[0].value]
+
+        print(f"  Identity = {', '.join(names)}")
+
         for domain in self.domains:
-            if domain not in all_names:
+            if domain not in names:
                 raise DaneBotError(f"domain {domain} not covered by certificate")
 
     def run(self):
