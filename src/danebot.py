@@ -104,7 +104,7 @@ def main() -> int:
         action="append",
         required=True,
         help=(
-            "TCP ports to set TLSA records for. For instance, --tcp=53 corresponds to"
+            "TCP ports to set TLSA records for. For instance, --tcp=25 corresponds to"
             ' the prefix "_25._tcp.". Can be specified multiple times.'
         ),
     )
