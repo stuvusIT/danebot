@@ -17,7 +17,6 @@ import urllib
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from ipaddress import ip_address
 
 
 def main() -> int:
