@@ -12,7 +12,7 @@ renewed since DaneBot's last run) and then performs the following steps:
 2. Wait for DNS propagation time plus record TTL.
 3. Run a user-specified hook. This hook should typically install the new certificate on
    the server, e.g., by copying the certificate and key to the server's configuration
-   and restarting the server.
+   and reloading the server.
 4. Remove old TLSA records.
 
 Typically, you have a certificate file that gets renewed from time to time, e.g., by an
@@ -57,8 +57,8 @@ the `--probe` flag.
 
 DaneBot is idempotent and can safely be rerun even if the certificate has not changed
 since the last run.
-We suggest using the `--probe` flag in order to skip the hook (and server restart)
-during subsequent runs.
+We suggest using the `--probe` flag in order to skip the hook (and server reload) during
+subsequent runs.
 
 DaneBot can safely be interrupted and rerun at any time.
 
@@ -102,8 +102,8 @@ server.
 set -e
 echo Installing certificate ...
 install -m 600 <(echo "$DANEBOT_KEY" && echo "$DANEBOT_CERT") /etc/postfix/fullchain.pem
-echo Restarting postfix ...
-systemctl restart postfix
+echo Reloading postfix ...
+systemctl reload postfix
 ```
 
 In above example, the postfix server needs to be configured with
