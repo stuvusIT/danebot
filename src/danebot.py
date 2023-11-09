@@ -161,10 +161,13 @@ class DaneBot:
             {args.rfc2136_tsig_key: args.rfc2136_tsig_secret}
         )
 
-        with open(args.cert_file, "rb") as cert_file:
-            cert_pem = cert_file.read()
-        self.cert = x509.load_pem_x509_certificate(cert_pem)
-        self.key = serialization.load_pem_private_key(cert_pem, password=None)
+        try:
+            with open(args.cert_file, "rb") as cert_file:
+                cert_pem = cert_file.read()
+            self.cert = x509.load_pem_x509_certificate(cert_pem)
+            self.key = serialization.load_pem_private_key(cert_pem, password=None)
+        except Exception as e:
+            raise DaneBotError(f"loading --cert-file: {e}")
         # TODO: Check if key belongs to cert
         self.cert_sha256 = self.cert.fingerprint(hashes.SHA256())
         self.dane_ee_hash = get_dane_ee_hash(self.cert)
