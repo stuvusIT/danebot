@@ -168,10 +168,9 @@ class DaneBot:
             self.key = serialization.load_pem_private_key(cert_pem, password=None)
         except Exception as e:
             raise DaneBotError(f"loading --cert-file: {e}")
-        # TODO: Check if key belongs to cert
         self.cert_sha256 = self.cert.fingerprint(hashes.SHA256())
-        self.dane_ee_hash = get_dane_ee_hash(self.cert)
-        self.rdata = get_tlsa_rdata(self.dane_ee_hash)
+        pubkey_der = serialize_pubkey_der(self.cert.public_key())
+        self.rdata = get_tlsa_rdata(pubkey_der)
 
         print(f"Loaded certificate {args.cert_file}:")
         print(f"  TLSA rdata = {self.rdata}")
@@ -192,6 +191,11 @@ class DaneBot:
             names = [cn_attributes[0].value]
 
         print(f"  Identity = {', '.join(names)}")
+
+        if pubkey_der != serialize_pubkey_der(self.key.public_key()):
+            raise DaneBotError(
+                "key does not belong to certificate: public key mismatch"
+            )
 
         for domain in self.domains:
             if domain not in names:
@@ -315,17 +319,16 @@ class DaneBot:
         print("Hook returned successfully.")
 
 
-def get_dane_ee_hash(cert):
-    pk = cert.public_key()
-    pk_pem = pk.public_bytes(
+def serialize_pubkey_der(pubkey):
+    return pubkey.public_bytes(
         serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
     )
+
+
+def get_tlsa_rdata(pubkey_der):
     digest = hashes.Hash(hashes.SHA256())
-    digest.update(pk_pem)
-    return digest.finalize()
-
-
-def get_tlsa_rdata(dane_ee_hash):
+    digest.update(pubkey_der)
+    dane_ee_hash = digest.finalize()
     return dns.rdtypes.ANY.TLSA.TLSA(
         dns.rdataclass.IN, dns.rdatatype.TLSA, 3, 1, 1, dane_ee_hash
     )
