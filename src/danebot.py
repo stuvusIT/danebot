@@ -77,9 +77,10 @@ def main() -> int:
         "--rfc2136-nameserver",
         required=True,
         help=(
-            "Authoritative nameserver used to query and update TLSA records. Must be an"
-            " IP address, optionally followed by port. The default port is 53. Syntax"
-            " examples: 1.2.3.4, 1.2.3.4:53, [2001:db8::1], [2001:db8::1]:53"
+            "Authoritative nameserver used to query and update TLSA records. Must be a"
+            " domain name or IP address, optionally followed by port. The default port"
+            " is 53. Syntax examples: dns.example.com, dns.example.com:53, 1.2.3.4,"
+            " 1.2.3.4:53, [2001:db8::1], [2001:db8::1]:53"
         ),
     )
     parser.add_argument(
