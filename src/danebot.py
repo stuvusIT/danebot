@@ -52,7 +52,7 @@ def main() -> int:
             " the new certificate and key (unencrypted) in PEM-encoded format. The hook"
             " should typically install the new certificate on the server, e.g., by"
             " copying the certificate and key to the server's configuration and"
-            " restarting the server."
+            " reloading the server."
         ),
     )
     parser.add_argument(
@@ -298,7 +298,7 @@ class DaneBot:
 
     def run_hook(self):
         # The hook should typically copy the new certificate to the server's
-        # configuration and restart the server.
+        # configuration and reload the server.
         print("Running hook ...")
         env = os.environ.copy()
         env["DANEBOT_CERT"] = self.cert.public_bytes(serialization.Encoding.PEM)
