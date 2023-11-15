@@ -332,11 +332,15 @@ def get_tlsa_rdata(dane_ee_hash):
 
 
 def get_server_cert(hostname, port):
-    context = ssl._create_unverified_context()
     with socket.create_connection((hostname, port)) as sock:
         sock.recv(1000)
         sock.send(b"EHLO mail.example.com\nSTARTTLS\n")
         sock.recv(1000)
+        # Do not verify certificate, because we don't want to fail when the old
+        # certificate is expired or misconfigured.
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
         with context.wrap_socket(sock, server_hostname=hostname) as sslsock:
             return x509.load_der_x509_certificate(sslsock.getpeercert(True))
 
