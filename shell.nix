@@ -8,6 +8,7 @@ mkShell {
       black
       cryptography
       dns
+      pylint
     ]))
   ];
 }

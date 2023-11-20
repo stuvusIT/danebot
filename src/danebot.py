@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import dns.message
-import dns.query
-import dns.rdtypes.ANY.TLSA
-import dns.tsigkeyring
-import dns.update
 import os
 import socket
 import ssl
@@ -14,6 +9,12 @@ import sys
 import textwrap
 import time
 import urllib
+
+import dns.message
+import dns.query
+import dns.rdtypes.ANY.TLSA
+import dns.tsigkeyring
+import dns.update
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -113,8 +114,8 @@ def main() -> int:
 
     try:
         DaneBot(args).run()
-    except DaneBotError as e:
-        print(f"Error: {e}")
+    except DaneBotError as exc:
+        print(f"Error: {exc}")
         return 1
 
     return 0
@@ -137,14 +138,14 @@ class DaneBot:
             url = urllib.parse.urlsplit("//" + args.rfc2136_nameserver)
             if url.port is not None:
                 int(url.port)
-        except Exception as e:
-            raise DaneBotError(f"parsing --rfc2136-nameserver: {e}")
+        except Exception as exc:
+            raise DaneBotError(f"parsing --rfc2136-nameserver: {exc}") from exc
         try:
             self.rfc2136_ip = socket.getaddrinfo(
                 url.hostname, None, 0, 0, socket.SOL_TCP
             )[0][4][0]
-        except socket.gaierror as e:
-            raise DaneBotError(f"resolving --rfc2136-nameserver: {e}")
+        except socket.gaierror as exc:
+            raise DaneBotError(f"resolving --rfc2136-nameserver: {exc}") from exc
         self.rfc2136_port = 53 if url.port is None else url.port
 
         if args.rfc2136_tsig_key is None:
@@ -166,8 +167,8 @@ class DaneBot:
                 cert_pem = cert_file.read()
             self.cert = x509.load_pem_x509_certificate(cert_pem)
             self.key = serialization.load_pem_private_key(cert_pem, password=None)
-        except Exception as e:
-            raise DaneBotError(f"loading --cert-file: {e}")
+        except Exception as exc:
+            raise DaneBotError(f"loading --cert-file: {exc}") from exc
         self.cert_sha256 = self.cert.fingerprint(hashes.SHA256())
         pubkey_der = serialize_pubkey_der(self.cert.public_key())
         self.rdata = get_tlsa_rdata(pubkey_der)
@@ -182,12 +183,14 @@ class DaneBot:
             names = self.cert.extensions.get_extension_for_class(
                 x509.SubjectAlternativeName
             ).value.get_values_for_type(x509.DNSName)
-        except x509.extensions.ExtensionNotFound:
+        except x509.extensions.ExtensionNotFound as exc:
             cn_attributes = self.cert.subject.get_attributes_for_oid(
                 x509.oid.NameOID.COMMON_NAME
             )
             if not cn_attributes:
-                raise DaneBotError(f"certificate has no dNSName nor Common Name")
+                raise DaneBotError(
+                    "certificate has no dNSName nor Common Name"
+                ) from exc
             names = [cn_attributes[0].value]
 
         print(f"  Identity = {', '.join(names)}")
@@ -225,8 +228,8 @@ class DaneBot:
         port = self.tcp_ports[0]
         try:
             live_cert = get_server_cert(hostname, port)
-        except Exception as e:
-            raise DaneBotError(f"probing {hostname}:{port}: {e}")
+        except Exception as exc:
+            raise DaneBotError(f"probing {hostname}:{port}: {exc}") from exc
         sha256 = live_cert.fingerprint(hashes.SHA256())
         print(f"Probe: {hostname}:{port} has fingerprint sha256:{sha256.hex()}")
         if sha256 == self.cert_sha256:
@@ -264,9 +267,9 @@ class DaneBot:
                         continue
 
                 if keep_old_records:
-                    print(f"Will ADD the following records:")
+                    print("Will ADD the following records:")
                 else:
-                    print(f"Will REPLACE by the following records:")
+                    print("Will REPLACE by the following records:")
                 print(textwrap.indent(str(rrset), "  "))
 
                 zone = self.resolve_zone(name)
@@ -313,9 +316,10 @@ class DaneBot:
             serialization.PrivateFormat.TraditionalOpenSSL,
             serialization.NoEncryption(),
         )
-        proc = subprocess.run([self.hook], env=env)
-        if proc.returncode != 0:
-            raise DaneBotError(f"hook failed with code {proc.returncode}")
+        try:
+            subprocess.run([self.hook], env=env, check=True)
+        except subprocess.CalledProcessError as exc:
+            raise DaneBotError(f"hook failed with code {exc.returncode}") from exc
         print("Hook returned successfully.")
 
 
@@ -349,16 +353,16 @@ def get_server_cert(hostname, port):
 
 
 def dns_query(
-    request, ip, port, allowable_rcodes=[dns.rcode.NOERROR, dns.rcode.NXDOMAIN]
+    request, ip_addr, port, allowable_rcodes=(dns.rcode.NOERROR, dns.rcode.NXDOMAIN)
 ):
     try:
-        response = dns.query.tcp(request, ip, port=port)
-    except Exception as e:
-        raise DaneBotError(f"failed DNS request @ {ip}: {e}")
+        response = dns.query.tcp(request, ip_addr, port=port)
+    except Exception as exc:
+        raise DaneBotError(f"failed DNS request @ {ip_addr}: {exc}") from exc
     rcode = response.rcode()
     if rcode not in allowable_rcodes:
         raise DaneBotError(
-            f"DNS request @ {ip} returned with rcode {dns.rcode.to_text(rcode)}"
+            f"DNS request @ {ip_addr} returned with rcode {dns.rcode.to_text(rcode)}"
         )
     return response
 
