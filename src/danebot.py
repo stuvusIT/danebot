@@ -218,7 +218,7 @@ class DaneBot:
         if not self.support_probes or self.cert_sha256 != self.probe():
             previous_ttl = self.update(True)
 
-            sleep_time = self.propagation_time + previous_ttl
+            sleep_time = self.propagation_time + 2 * previous_ttl
             print(f"Waiting for {sleep_time} seconds ...")
             time.sleep(sleep_time)
 
