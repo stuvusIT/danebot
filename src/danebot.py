@@ -100,6 +100,15 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--rfc2136-tsig-algo",
+        default="hmac-sha256",
+        help=(
+            'TSIG algorithm to sign DNS update with. Defaults to "hmac-sha256". For'
+            " possible values, see:"
+            " https://github.com/rthalley/dnspython/blob/main/dns/tsig.py"
+        ),
+    )
+    parser.add_argument(
         "--tcp",
         type=int,
         action="append",
@@ -133,6 +142,7 @@ class DaneBot:
         self.support_probes = args.probe
         self.propagation_time = args.propagation_time
         self.hook = args.hook
+        self.rfc2136_tsig_algo = args.rfc2136_tsig_algo
 
         try:
             url = urllib.parse.urlsplit("//" + args.rfc2136_nameserver)
@@ -275,7 +285,9 @@ class DaneBot:
                 zone = self.resolve_zone(name)
                 if zone not in updates:
                     updates[zone] = dns.update.Update(
-                        zone, keyring=self.rfc2136_keyring
+                        zone,
+                        keyring=self.rfc2136_keyring,
+                        keyalgorithm=self.rfc2136_tsig_algo,
                     )
                 if keep_old_records:
                     updates[zone].add(name, rrset)
