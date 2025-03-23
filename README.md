@@ -9,7 +9,7 @@ DaneBot simply parses a given certificate file (which might or might not have be
 renewed since DaneBot's last run) and then performs the following steps:
 
 1. Add TLSA record(s) for the certificate.
-2. Wait for DNS propagation time plus record TTL.
+2. Wait for DNS propagation time + 2 * record TTL.
 3. Run a user-specified hook. This hook should typically install the new certificate on
    the server, e.g., by copying the certificate and key to the server's configuration
    and reloading the server.
